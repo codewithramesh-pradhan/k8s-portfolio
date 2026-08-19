@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: static-website-sm
+  namespace: portfolio
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: static-website
+  endpoints:
+  - port: http
+    interval: 15s
+    path: /
