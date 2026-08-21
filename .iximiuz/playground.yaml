@@ -1,0 +1,19 @@
+version: "1.0"
+title: "Kubernetes Portfolio, Monitoring & ArgoCD Stack"
+description: "Self-healing Kubernetes playground with Prometheus, Grafana, HPA, and GitOps."
+machine:
+  type: k8s-cluster
+init:
+  - name: "Bootstrap Stack"
+    command: |
+      chmod +x scripts/*.sh
+      ./scripts/bootstrap.sh
+ports:
+  - port: 80
+    name: "Static Website"
+  - port: 3000
+    name: "Grafana"
+  - port: 9090
+    name: "Prometheus"
+  - port: 8080
+    name: "ArgoCD"
