@@ -19,10 +19,11 @@ spec:
     spec:
       containers:
         - name: web
-          image: nginx:alpine
+          image: docker.io/rameshpradhan88/my-static-website:v1.0.0
           ports:
             - name: http
               containerPort: 80
+          imagePullPolicy: IfNotPresent
           resources:
             requests:
               cpu: "100m"

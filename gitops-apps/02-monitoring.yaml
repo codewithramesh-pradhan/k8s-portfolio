@@ -19,7 +19,12 @@ spec:
           prometheusSpec:
             serviceMonitorSelectorNilUsesHelmValues: false
         grafana:
-          adminPassword: "admin"
+         admin:
+            existingSecret: "grafana-admin-credentials"
+            userKey: "admin-user"
+            passwordKey: "admin-password"
+          service:
+            type: ClusterIP
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: monitoring
@@ -29,3 +34,11 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true      # Prevents CRD last-applied-configuration diffs
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: monitoring-kube-prometheus-admission
+      jsonPointers:
+        - /data
