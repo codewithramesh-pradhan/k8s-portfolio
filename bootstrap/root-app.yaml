@@ -11,6 +11,8 @@ spec:
     repoURL: 'https://github.com/codewithramesh-pradhan/k8s-portfolio.git'
     targetRevision: HEAD
     path: gitops-apps
+    directory:
+      recurse: true
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: argocd
@@ -18,3 +20,5 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
