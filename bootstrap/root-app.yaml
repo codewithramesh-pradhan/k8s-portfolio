@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: portfolio-application
+  name: root-app
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,13 +10,11 @@ spec:
   source:
     repoURL: 'https://github.com/codewithramesh-pradhan/k8s-portfolio.git'
     targetRevision: HEAD
-    path: apps/portfolio
+    path: gitops-apps
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: portfolio
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-    - CreateNamespace=true

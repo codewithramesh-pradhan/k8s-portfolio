@@ -1,26 +1,12 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-echo "==> Creating k3d cluster..."
-k3d cluster create portfolio-dev --agents 1
+echo "==> Spinning up local dev environment..."
 
-echo "==> Adding Helm repositories..."
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add argo https://argoproj.github.io/argo-helm
-helm repo update
+# 1. If using Kind/Minikube locally, ensure cluster is running (optional)
+# minikube start || kind create cluster
 
-echo "==> Installing kube-prometheus-stack..."
-helm install monitoring prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --create-namespace \
-  -f infrastructure/monitoring/values-kube-prometheus.yaml
+# 2. Trigger the bootstrap script to install Argo CD & Root App
+bash scripts/bootstrap.sh
 
-echo "==> Installing ArgoCD..."
-helm install argocd argo/argo-cd \
-  --namespace argocd \
-  --create-namespace
-
-echo "==> Deploying portfolio application..."
-kubectl apply -f apps/portfolio/ -n portfolio
-
-echo "==> Environment ready! Access services with kubectl port-forward."
+echo "==> Dev environment is UP and GitOps is active!"

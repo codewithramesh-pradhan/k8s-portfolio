@@ -3,8 +3,15 @@ kind: Kustomization
 
 namespace: portfolio
 
+# Common labels applied to all generated resources
+commonLabels:
+  app.kubernetes.io/part-of: portfolio-project
+  app.kubernetes.io/managed-by: argocd
+
+# All manifests managed by this Kustomize overlay
 resources:
   - deployment.yaml
   - service.yaml
-  - servicemonitor.yaml
   - hpa.yaml
+  - servicemonitor.yaml
+  - sealed-secret.yaml

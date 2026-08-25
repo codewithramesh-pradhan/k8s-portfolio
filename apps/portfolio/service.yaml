@@ -4,12 +4,12 @@ metadata:
   name: static-website-svc
   namespace: portfolio
   labels:
-    app: static-website
+    app.kubernetes.io/name: portfolio
 spec:
   type: ClusterIP
-  selector:
-    app: static-website
   ports:
-  - name: http
-    port: 80
-    targetPort: http
+    - name: http
+      port: 80
+      targetPort: 80
+  selector:
+    app.kubernetes.io/name: portfolio

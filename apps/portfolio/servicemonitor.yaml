@@ -1,15 +1,18 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: static-website-sm
-  namespace: portfolio
+  name: portfolio-monitor
+  namespace: monitoring
   labels:
     release: monitoring
 spec:
   selector:
     matchLabels:
-      app: static-website
+      app.kubernetes.io/name: portfolio
+  namespaceSelector:
+    matchNames:
+      - portfolio
   endpoints:
-  - port: http
-    interval: 15s
-    path: /
+    - port: http
+      interval: 15s
+      path: /
