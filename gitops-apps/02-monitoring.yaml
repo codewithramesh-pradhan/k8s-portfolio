@@ -9,22 +9,29 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: 'https://prometheus-community.github.io/helm-charts'
-    chart: kube-prometheus-stack
-    targetRevision: 58.0.0
-    helm:
-      valuesObject:
-        prometheus:
-          prometheusSpec:
-            serviceMonitorSelectorNilUsesHelmValues: false
-        grafana:
-          admin:
-            existingSecret: "grafana-admin-credentials"
-            userKey: "admin-user"
-            passwordKey: "admin-password"
-          service:
-            type: ClusterIP
+  sources:
+    # 1. Official Helm Chart
+    - repoURL: 'https://prometheus-community.github.io/helm-charts'
+      chart: kube-prometheus-stack
+      targetRevision: 58.0.0
+      helm:
+        valuesObject:
+          prometheus:
+            prometheusSpec:
+              serviceMonitorSelectorNilUsesHelmValues: false
+          grafana:
+            admin:
+              existingSecret: "grafana-admin-credentials"
+              userKey: "admin-user"
+              passwordKey: "admin-password"
+            service:
+              type: ClusterIP
+
+    # 2. Your Git repository with the SealedSecret
+    - repoURL: 'https://github.com/codewithramesh-pradhan/k8s-portfolio.git'   # e.g., https://github.com/your-user/k8s-portfolio.git
+      targetRevision: HEAD             # or 'main'
+      path: infrastructure/monitoring
+
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: monitoring
