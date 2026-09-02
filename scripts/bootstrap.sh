@@ -18,11 +18,13 @@ kubectl apply -f bootstrap/root-app.yaml
 
 echo "==> 3. Setting Up Background Port-Forwards..."
 sleep 10
-# Portfolio
-kubectl port-forward --address 0.0.0.0 svc/static-website-svc -n portfolio 8080:80 > /dev/null 2>&1 &
-# ArgoCD
-kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8081:80 > /dev/null 2>&1 &
-# Grafana
-kubectl port-forward --address 0.0.0.0 svc/monitoring-grafana -n monitoring 8082:80 > /dev/null 2>&1 &
+# Portfolio (playground.yaml: port 80)
+kubectl port-forward --address 0.0.0.0 svc/static-website-svc -n portfolio 80:80 > /dev/null 2>&1 &
+# ArgoCD (playground.yaml: port 8080)
+kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8080:80 > /dev/null 2>&1 &
+# Grafana (playground.yaml: port 3000)
+kubectl port-forward --address 0.0.0.0 svc/monitoring-grafana -n monitoring 3000:80 > /dev/null 2>&1 &
+# Prometheus (playground.yaml: port 9090)
+kubectl port-forward --address 0.0.0.0 svc/monitoring-kube-prometheus-prometheus -n monitoring 9090:9090 > /dev/null 2>&1 &
 
 echo "Setup complete! Argo CD is reconciling all infrastructure and apps."
