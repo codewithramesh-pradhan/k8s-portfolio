@@ -3,6 +3,14 @@ prometheus:
     serviceMonitorSelectorNilUsesHelmValues: false
     serviceMonitorSelector: {}
     podMonitorSelector: {}
+    retention: 6h        # no need to store much history locally
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "400Mi"
+      limits:
+        cpu: "500m"
+        memory: "800Mi"
 
 grafana:
   admin:
@@ -11,3 +19,35 @@ grafana:
     passwordKey: "admin-password"
   service:
     type: ClusterIP
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+
+# Disable components not needed for local dev
+kubeStateMetrics:
+  resources:
+    requests:
+      memory: "32Mi"
+    limits:
+      memory: "64Mi"
+
+nodeExporter:
+  resources:
+    requests:
+      memory: "32Mi"
+    limits:
+      memory: "64Mi"

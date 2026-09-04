@@ -18,8 +18,8 @@ kubectl apply -f bootstrap/root-app.yaml
 
 echo "==> 3. Setting Up Background Port-Forwards..."
 sleep 10
-# Portfolio (playground.yaml: port 80)
-kubectl port-forward --address 0.0.0.0 svc/static-website-svc -n portfolio 80:80 > /dev/null 2>&1 &
+# Portfolio - use 8888 locally to avoid needing sudo for port 80
+kubectl port-forward --address 0.0.0.0 svc/static-website-svc -n portfolio 8888:80 > /dev/null 2>&1 &
 # ArgoCD (playground.yaml: port 8080)
 kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8080:80 > /dev/null 2>&1 &
 # Grafana (playground.yaml: port 3000)
