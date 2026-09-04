@@ -14,4 +14,3 @@ resources:
   - service.yaml
   - hpa.yaml
   - servicemonitor.yaml
-  - sealed-secret.yaml
