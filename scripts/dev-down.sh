@@ -16,7 +16,16 @@ fi
 # 3. Optional: Delete namespaces manually if destroying everything
 kubectl delete namespace portfolio monitoring argocd --ignore-not-found=true
 
-# 4. If using local cluster teardown (optional)
-# minikube delete || kind delete cluster
+# 4. Delete the Kind cluster
+if kind get clusters 2>/dev/null | grep -q "k8s-portfolio"; then
+  echo "Deleting Kind cluster: k8s-portfolio..."
+  kind delete cluster --name k8s-portfolio
+fi
+
+# 5. Delete the k3d cluster
+if k3d cluster list 2>/dev/null | grep -q "portfolio-dev"; then
+  echo "Deleting k3d cluster: portfolio-dev..."
+  k3d cluster delete portfolio-dev
+fi
 
 echo "==> Dev environment is DOWN and clean."
