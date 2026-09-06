@@ -3,10 +3,13 @@ kind: Kustomization
 
 namespace: portfolio
 
-# Common labels applied to all generated resources
-commonLabels:
-  app.kubernetes.io/part-of: portfolio-project
-  app.kubernetes.io/managed-by: argocd
+# Labels added to metadata only — does NOT mutate immutable selector fields
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: portfolio-project
+      app.kubernetes.io/managed-by: argocd
+    includeSelectors: false
+    includeTemplates: true
 
 # All manifests managed by this Kustomize overlay
 resources:
@@ -14,3 +17,14 @@ resources:
   - service.yaml
   - hpa.yaml
   - servicemonitor.yaml
+
+# Patch the ServiceMonitor back to the monitoring namespace
+# (kustomize namespace: portfolio would override it otherwise)
+patches:
+  - target:
+      kind: ServiceMonitor
+      name: portfolio-monitor
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: monitoring
