@@ -39,8 +39,29 @@ spec:
       - ServerSideApply=true
       - RespectIgnoreDifferences=true
   ignoreDifferences:
+    # Admission webhook secret — cert data is generated at runtime
     - group: ""
       kind: Secret
       name: monitoring-kube-prometheus-admission
       jsonPointers:
         - /data
+    # Webhook caBundle is injected by cert-manager / kube at runtime
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+    # Prometheus operator sets clusterIP and other runtime fields on Services
+    - group: ""
+      kind: Service
+      jsonPointers:
+        - /spec/clusterIP
+        - /spec/clusterIPs
+    # HPA / replicas managed at runtime
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
