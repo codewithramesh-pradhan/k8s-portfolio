@@ -1,0 +1,123 @@
+name: Release — Promote Image Tag
+
+# ── When to run ───────────────────────────────────────────────────────────────
+# Manual workflow for promoting an already-built image to a release tag.
+# Use case: you have v1.2.3-rc1 in staging; this creates the stable v1.2.3
+# tag on Docker Hub, updates the manifest, and optionally creates a Git tag.
+#
+# Required secrets:
+#   DOCKERHUB_USERNAME — Docker Hub login
+#   DOCKERHUB_TOKEN    — Docker Hub access token (read/write)
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: "Source image tag to promote (e.g. v1.2.3-rc1)"
+        required: true
+        type: string
+      release_tag:
+        description: "Release tag to create (e.g. v1.2.3)"
+        required: true
+        type: string
+      create_git_tag:
+        description: "Also create a Git tag on this commit?"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: rameshpradhan88/my-static-website
+  MANIFEST_PATH: apps/portfolio/deployment.yaml
+
+jobs:
+  promote:
+    name: Retag & Promote to ${{ github.event.inputs.release_tag }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 1. Validate inputs ────────────────────────────────────────────────
+      - name: Validate inputs
+        run: |
+          SOURCE="${{ github.event.inputs.source_tag }}"
+          RELEASE="${{ github.event.inputs.release_tag }}"
+
+          if [[ ! "$SOURCE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "ERROR: source_tag '$SOURCE' does not look like a semver tag (vX.Y.Z...)"
+            exit 1
+          fi
+          if [[ ! "$RELEASE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: release_tag '$RELEASE' must be a clean semver tag (vX.Y.Z)"
+            exit 1
+          fi
+          if [ "$SOURCE" = "$RELEASE" ]; then
+            echo "ERROR: source_tag and release_tag must differ."
+            exit 1
+          fi
+          echo "Promoting $SOURCE → $RELEASE"
+
+      # ── 2. Retag image on Docker Hub ──────────────────────────────────────
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Pull source image
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.source_tag }}
+
+      - name: Retag and push release image
+        run: |
+          docker tag \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.source_tag }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.release_tag }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.release_tag }}
+          echo "Pushed ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.release_tag }}"
+
+      # ── 3. Update deployment.yaml to the release tag ─────────────────────
+      - name: Update image tag in deployment.yaml
+        run: |
+          RELEASE="${{ github.event.inputs.release_tag }}"
+          sed -i -E \
+            "s|(image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}):.*|\1:${RELEASE}|" \
+            ${{ env.MANIFEST_PATH }}
+          echo "Updated manifest:"
+          grep "image:" ${{ env.MANIFEST_PATH }}
+
+      # ── 4. Commit, tag, push ──────────────────────────────────────────────
+      - name: Commit manifest update
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ${{ env.MANIFEST_PATH }}
+          git commit -m "release: promote image to ${{ github.event.inputs.release_tag }} [skip ci]"
+          git push
+
+      - name: Create Git tag
+        if: github.event.inputs.create_git_tag == 'true'
+        run: |
+          git tag ${{ github.event.inputs.release_tag }}
+          git push origin ${{ github.event.inputs.release_tag }}
+          echo "Git tag ${{ github.event.inputs.release_tag }} created."
+
+      # ── 5. Summary ────────────────────────────────────────────────────────
+      - name: Release summary
+        run: |
+          echo "### Release complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Source tag | \`${{ github.event.inputs.source_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Release tag | \`${{ github.event.inputs.release_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Image | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.release_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Git tag | ${{ github.event.inputs.create_git_tag == 'true' && '✅ created' || '⏭ skipped' }} |" >> "$GITHUB_STEP_SUMMARY"

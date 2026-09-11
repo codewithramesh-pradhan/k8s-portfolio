@@ -1,0 +1,79 @@
+name: Validate Manifests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "infrastructure/**"
+      - "gitops-apps/**"
+      - "bootstrap/**"
+
+jobs:
+  validate:
+    name: Lint & Validate K8s Manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 1. kustomize build (dry-run: ensures all refs resolve) ─────────────
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: "5.4.3"
+
+      - name: kustomize build (dry-run)
+        run: |
+          echo "==> Building apps/portfolio overlay"
+          kustomize build apps/portfolio > /tmp/portfolio-rendered.yaml
+          echo "Build succeeded — rendered manifest:"
+          cat /tmp/portfolio-rendered.yaml
+
+      # ── 2. kubeval — validates rendered YAML against K8s schemas ──────────
+      - name: Install kubeval
+        run: |
+          curl -sSLo /tmp/kubeval.tar.gz \
+            https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf /tmp/kubeval.tar.gz -C /tmp
+          sudo mv /tmp/kubeval /usr/local/bin/kubeval
+          kubeval --version
+
+      - name: kubeval — validate rendered manifests
+        run: |
+          kubeval --strict \
+            --ignore-missing-schemas \
+            --kubernetes-version 1.29.0 \
+            /tmp/portfolio-rendered.yaml
+
+      # ── 3. Validate raw manifests (catch files outside kustomize) ─────────
+      - name: kubeval — validate all raw YAML files
+        run: |
+          find apps infrastructure bootstrap -name "*.yaml" | while read f; do
+            echo "Validating $f"
+            kubeval --ignore-missing-schemas --kubernetes-version 1.29.0 "$f" || true
+          done
+
+      # ── 4. Check image tag is not 'latest' ────────────────────────────────
+      - name: Check image tags are pinned (no :latest)
+        run: |
+          if grep -rn "image:.*:latest" apps/; then
+            echo "ERROR: Found ':latest' image tag — pin to a specific version."
+            exit 1
+          fi
+          echo "All image tags are pinned."
+
+      # ── 5. Verify HPA targets a real Deployment ───────────────────────────
+      - name: Verify HPA scaleTargetRef matches Deployment name
+        run: |
+          HPA_TARGET=$(grep -A5 "scaleTargetRef" apps/portfolio/hpa.yaml | grep "name:" | awk '{print $2}')
+          DEPLOY_NAME=$(grep "^  name:" apps/portfolio/deployment.yaml | head -1 | awk '{print $2}')
+          echo "HPA targets: $HPA_TARGET | Deployment name: $DEPLOY_NAME"
+          if [ "$HPA_TARGET" != "$DEPLOY_NAME" ]; then
+            echo "ERROR: HPA scaleTargetRef '$HPA_TARGET' does not match Deployment '$DEPLOY_NAME'"
+            exit 1
+          fi
+          echo "HPA target ref is consistent."
